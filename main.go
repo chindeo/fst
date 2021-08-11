@@ -46,7 +46,7 @@ func main() {
 `, *ip, ts, sleep, *timeout)
 
 	go func() {
-		bar := progressbar.NewOptions(ts*sleep,
+		bar := progressbar.NewOptions(ts+sleep,
 			progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
 			progressbar.OptionEnableColorCodes(true),
 			// progressbar.OptionShowBytes(true),
@@ -59,24 +59,23 @@ func main() {
 				BarStart:      "[",
 				BarEnd:        "]",
 			}))
-		for i := 0; i < ts*sleep; i++ {
+		for i := 0; i < ts+sleep; i++ {
 			bar.Add(1)
 			time.Sleep(1 * time.Second)
 		}
 	}()
 
-	time.Sleep(time.Duration(ts*sleep+2) * time.Second)
+	time.Sleep(time.Duration(ts+sleep+2) * time.Second)
 
 	fmt.Printf("\n测试结果:\n")
+	fmt.Printf("\n成功:【%d】 次 ；失败:【%d】 次\n", len(successed), len(failed))
 	go func() {
-		fmt.Printf("\n成功:【%d】 次\n", len(successed))
 		for s := range successed {
 			fmt.Printf("成功时间： %v\n", s)
 		}
 	}()
 
 	go func() {
-		fmt.Printf("\n失败:【%d】 次\n", len(failed))
 		for f := range failed {
 			fmt.Printf("失败原因：%v\n", f)
 		}
