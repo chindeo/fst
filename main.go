@@ -51,7 +51,7 @@ func main() {
 			progressbar.OptionEnableColorCodes(true),
 			// progressbar.OptionShowBytes(true),
 			progressbar.OptionSetWidth(15),
-			progressbar.OptionSetDescription("[cyan][1/1][reset] 服务测试中"),
+			progressbar.OptionSetDescription("[cyan][1/1][reset] 测试进度"),
 			progressbar.OptionSetTheme(progressbar.Theme{
 				Saucer:        "[green]=[reset]",
 				SaucerHead:    "[green]>[reset]",
