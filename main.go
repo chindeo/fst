@@ -25,6 +25,8 @@ func main() {
 	sleep := *s
 	failed := make(chan error, ts)
 	successed := make(chan time.Time, ts)
+	defer close(failed)
+	defer close(successed)
 	for i := 0; i < ts; i++ {
 		go func() {
 			err := CheckFreeSwitch(*ip, sleep, *timeout)
@@ -66,15 +68,20 @@ func main() {
 	time.Sleep(time.Duration(ts*sleep+2) * time.Second)
 
 	fmt.Printf("\n测试结果:\n")
-	fmt.Printf("\n成功:【%d】 次\n", len(successed))
-	for s := range successed {
-		fmt.Printf("成功时间： %v\n", s)
-	}
+	go func() {
+		fmt.Printf("\n成功:【%d】 次\n", len(successed))
+		for s := range successed {
+			fmt.Printf("成功时间： %v\n", s)
+		}
+	}()
 
-	fmt.Printf("\n失败:【%d】 次\n", len(failed))
-	for f := range failed {
-		fmt.Printf("失败原因：%v\n", f)
-	}
+	go func() {
+		fmt.Printf("\n失败:【%d】 次\n", len(failed))
+		for f := range failed {
+			fmt.Printf("失败原因：%v\n", f)
+		}
+	}()
+	select {}
 }
 
 // 监控freeswitch 服务是否正常
