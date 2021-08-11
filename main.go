@@ -15,34 +15,36 @@ import (
 
 var ip = flag.String("ip", "", "需要测试的fs服务器地址")
 var times = flag.Int("t", 50, "并发测试次数,最大100000")
-var timeout = flag.Int64("timeout", 5, "超时时间，默认5s")
-var s = flag.Int64("s", 5, "每次测试连接保留时间，默认5s")
+var timeout = flag.Int("timeout", 5, "超时时间，默认5s")
+var s = flag.Int("s", 5, "每次测试连接保留时间，默认5s")
 
 func main() {
 	flag.Parse()
 
+	ts := *times
+	sleep := *s
 	failed := make(chan error, 100000)
 	successed := make(chan time.Time, 100000)
-	for i := 0; i < *times; i++ {
+	for i := 0; i < ts; i++ {
 		go func() {
-			err := CheckFreeSwitch(*ip, *s)
+			err := CheckFreeSwitch(*ip, sleep, *timeout)
 			if err != nil {
 				failed <- err
 				return
 			}
 			successed <- time.Now()
 		}()
-
 	}
 
-	fmt.Printf(`开始测试:
+	fmt.Printf(`====>开始测试:
 -服务地址： %s
 -测试次数： %d
 -单次测试时间： %d
--连接超时时间： %d`, *ip, *times, *s, *timeout)
+-连接超时时间： %d
+`, *ip, ts, sleep, *timeout)
 
 	go func() {
-		bar := progressbar.NewOptions(*times*5,
+		bar := progressbar.NewOptions(ts*sleep,
 			progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
 			progressbar.OptionEnableColorCodes(true),
 			// progressbar.OptionShowBytes(true),
@@ -55,29 +57,31 @@ func main() {
 				BarStart:      "[",
 				BarEnd:        "]",
 			}))
-		for i := 0; i < *times*5*2; i++ {
+		for i := 0; i < ts*sleep; i++ {
 			bar.Add(1)
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 		}
 	}()
 
-	time.Sleep(time.Duration(*times*5) * time.Second)
+	time.Sleep(time.Duration(ts*sleep+2) * time.Second)
 
+	fmt.Printf("\n测试结果:\n")
 	fmt.Printf("\n成功:%d 次\n", len(successed))
-
-	fmt.Println("==================")
+	for s := range successed {
+		fmt.Printf("成功时间： %v\n", s)
+	}
 
 	fmt.Printf("\n失败:%d 次\n", len(failed))
-	for i := 0; i < len(failed); i++ {
-		fmt.Println(<-failed)
+	for f := range failed {
+		fmt.Printf("失败原因：%v\n", f)
 	}
 }
 
 // 监控freeswitch 服务是否正常
 // https://github.com/jart/gosip/blob/master/example/rawsip/rawsip_test.go
 // 本地环境可以监控，医院环境无法实现，报错超时
-func CheckFreeSwitch(raddr string, sleep int64) error {
-	conn, err := net.DialTimeout("udp", raddr, time.Second*time.Duration(*timeout))
+func CheckFreeSwitch(raddr string, sleep, timeout int) error {
+	conn, err := net.DialTimeout("udp", raddr, time.Second*time.Duration(timeout))
 	if err != nil {
 		return fmt.Errorf("check freeswitch dail timeout")
 	}
@@ -122,6 +126,6 @@ func CheckFreeSwitch(raddr string, sleep int64) error {
 		fmt.Printf("not ok :[\n%s", msg)
 		return fmt.Errorf("not ok :[\n%s", msg)
 	}
-	time.Sleep(time.Duration(sleep) * time.Second)
+	time.Sleep(time.Duration(*s) * time.Second)
 	return nil
 }
