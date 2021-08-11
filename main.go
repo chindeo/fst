@@ -14,7 +14,7 @@ import (
 )
 
 var ip = flag.String("ip", "", "需要测试的fs服务器地址")
-var times = flag.Int("t", 50, "并发测试次数,最大100000")
+var times = flag.Int("t", 50, "并发测试次数")
 var timeout = flag.Int("timeout", 5, "超时时间，默认5s")
 var s = flag.Int("s", 5, "每次测试连接保留时间，默认5s")
 
@@ -23,8 +23,8 @@ func main() {
 
 	ts := *times
 	sleep := *s
-	failed := make(chan error, 100000)
-	successed := make(chan time.Time, 100000)
+	failed := make(chan error, ts)
+	successed := make(chan time.Time, ts)
 	for i := 0; i < ts; i++ {
 		go func() {
 			err := CheckFreeSwitch(*ip, sleep, *timeout)
@@ -66,12 +66,12 @@ func main() {
 	time.Sleep(time.Duration(ts*sleep+2) * time.Second)
 
 	fmt.Printf("\n测试结果:\n")
-	fmt.Printf("\n成功:%d 次\n", len(successed))
+	fmt.Printf("\n成功:【%d】 次\n", len(successed))
 	for s := range successed {
 		fmt.Printf("成功时间： %v\n", s)
 	}
 
-	fmt.Printf("\n失败:%d 次\n", len(failed))
+	fmt.Printf("\n失败:【%d】 次\n", len(failed))
 	for f := range failed {
 		fmt.Printf("失败原因：%v\n", f)
 	}
