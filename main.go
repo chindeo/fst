@@ -16,6 +16,7 @@ import (
 var ip = flag.String("ip", "", "需要测试的fs服务器地址")
 var times = flag.Int("t", 50, "并发测试次数,最大100000")
 var timeout = flag.Int64("timeout", 5, "超时时间，默认5s")
+var s = flag.Int64("s", 5, "每次测试连接保留时间，默认5s")
 
 func main() {
 	flag.Parse()
@@ -24,7 +25,7 @@ func main() {
 	successed := make(chan time.Time, 100000)
 	for i := 0; i < *times; i++ {
 		go func() {
-			err := CheckFreeSwitch(*ip)
+			err := CheckFreeSwitch(*ip, *s)
 			if err != nil {
 				failed <- err
 				return
@@ -35,15 +36,16 @@ func main() {
 	}
 
 	fmt.Printf(`开始测试:
--ip= %s
--times= %d
--timeout= %d`, *ip, *times, *timeout)
+-服务地址： %s
+-测试次数： %d
+-单次测试时间： %d
+-连接超时时间： %d`, *ip, *times, *s, *timeout)
 
 	go func() {
 		bar := progressbar.NewOptions(*times*5,
 			progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
 			progressbar.OptionEnableColorCodes(true),
-			progressbar.OptionShowBytes(true),
+			// progressbar.OptionShowBytes(true),
 			progressbar.OptionSetWidth(15),
 			progressbar.OptionSetDescription("[cyan][1/1][reset] 服务测试中"),
 			progressbar.OptionSetTheme(progressbar.Theme{
@@ -53,9 +55,9 @@ func main() {
 				BarStart:      "[",
 				BarEnd:        "]",
 			}))
-		for i := 0; i < *times*5; i++ {
+		for i := 0; i < *times*5*2; i++ {
 			bar.Add(1)
-			time.Sleep(1 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 		}
 	}()
 
@@ -74,7 +76,7 @@ func main() {
 // 监控freeswitch 服务是否正常
 // https://github.com/jart/gosip/blob/master/example/rawsip/rawsip_test.go
 // 本地环境可以监控，医院环境无法实现，报错超时
-func CheckFreeSwitch(raddr string) error {
+func CheckFreeSwitch(raddr string, sleep int64) error {
 	conn, err := net.DialTimeout("udp", raddr, time.Second*time.Duration(*timeout))
 	if err != nil {
 		return fmt.Errorf("check freeswitch dail timeout")
@@ -120,6 +122,6 @@ func CheckFreeSwitch(raddr string) error {
 		fmt.Printf("not ok :[\n%s", msg)
 		return fmt.Errorf("not ok :[\n%s", msg)
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(time.Duration(sleep) * time.Second)
 	return nil
 }
